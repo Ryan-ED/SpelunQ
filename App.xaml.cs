@@ -10,4 +10,3 @@ namespace SpelunQ_wpf;
 public partial class App : Application
 {
 }
-
