@@ -1,4 +1,4 @@
-﻿namespace SpelunQ_wpf.Models;
+namespace SpelunQ.Models;
 
 public class RabbitMessage
 {

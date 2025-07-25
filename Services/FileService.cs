@@ -1,9 +1,9 @@
 ﻿using System.IO;
 using System.Text.Json;
 using System.Windows;
-using SpelunQ_wpf.Models;
+using SpelunQ.Models;
 
-namespace SpelunQ_wpf.Services;
+namespace SpelunQ.Services;
 
 public class FileService
 {

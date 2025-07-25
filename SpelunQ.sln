@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpelunQ-wpf", "SpelunQ-wpf.csproj", "{1764D3F0-5D39-4F28-AD9A-7357B653172D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpelunQ", "SpelunQ.csproj", "{1764D3F0-5D39-4F28-AD9A-7357B653172D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

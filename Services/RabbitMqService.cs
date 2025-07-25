@@ -3,9 +3,9 @@ using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows;
 using RabbitMQ.Client.Events;
-using SpelunQ_wpf.Models;
+using SpelunQ.Models;
 
-namespace SpelunQ_wpf.Services;
+namespace SpelunQ.Services;
 
 public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
     : IDisposable

@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace SpelunQ_wpf;
+namespace SpelunQ;
 
 public partial class SendMessageDialog
 {

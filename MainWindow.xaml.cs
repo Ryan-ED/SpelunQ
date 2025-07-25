@@ -3,10 +3,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Win32;
-using SpelunQ_wpf.Models;
-using SpelunQ_wpf.Services;
+using SpelunQ.Models;
+using SpelunQ.Services;
 
-namespace SpelunQ_wpf;
+namespace SpelunQ;
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml

@@ -1,4 +1,4 @@
-﻿<Window x:Class="SpelunQ_wpf.SendMessageDialog"
+<Window x:Class="SpelunQ.SendMessageDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Send Message to Queue" Height="400" Width="600"
