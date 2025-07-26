@@ -69,6 +69,9 @@ public partial class MainWindow
                         UsernameTextBox.Text,
                         PasswordBox.Password
                     );
+                    
+                    // show existing queues
+                    
 
                     
                     _isConnected = true;

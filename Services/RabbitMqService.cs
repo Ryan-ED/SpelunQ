@@ -55,8 +55,7 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
             _currentQueue = queueName;
 
             // Declare queue (creates if doesn't exist)
-            await _channel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false, autoDelete: false,
-                arguments: null);
+            await _channel.QueueDeclareAsync(queueName, true, false, false);
 
             _consumer = new AsyncEventingBasicConsumer(_channel);
 
@@ -126,8 +125,7 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
 
         try
         {
-            await _channel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false, autoDelete: false,
-                arguments: null);
+            await _channel.QueueDeclareAsync(queueName, true, false, false);
 
             var body = Encoding.UTF8.GetBytes(message);
             await _channel.BasicPublishAsync("", queueName, body);
