@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -6,17 +7,38 @@ services:
     ports:
       - "5672:5672"    # AMQP port
       - "15672:15672"  # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
-    environment:
-      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit load_definitions "/etc/rabbitmq/definitions.json"
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - spelunq-network
+
+  # Optional: RabbitMQ queue initializer
+  rabbitmq-init:
+    image: rabbitmq:3-management
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+    volumes:
+      - ./init-queues.sh:/init-queues.sh
+    command: /bin/bash -c "chmod +x /init-queues.sh && /init-queues.sh"
+    networks:
+      - spelunq-network
 
 volumes:
   rabbitmq_data:
+
+networks:
+  spelunq-network:
+    driver: bridge
