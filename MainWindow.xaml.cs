@@ -16,7 +16,9 @@ public partial class MainWindow
         private readonly ObservableCollection<RabbitMessage> _messages;
         private readonly RabbitMqService _rabbitMqService;
         private readonly FileService _fileService;
+        private readonly List<QueueInfo> _queues;
         private bool _isConnected;
+        private bool _isListening;
 
         public MainWindow()
         {
@@ -25,8 +27,10 @@ public partial class MainWindow
             _messages = new ObservableCollection<RabbitMessage>();
             _rabbitMqService = new RabbitMqService(_messages);
             _fileService = new FileService();
+            _queues = new List<QueueInfo>();
             
             MessagesDataGrid.ItemsSource = _messages;
+            QueuesComboBox.ItemsSource = _queues;
             
             // Set initial placeholder text
             UpdateSendMessagePlaceholder();
@@ -45,6 +49,13 @@ public partial class MainWindow
                     StartListeningButton.IsEnabled = false;
                     StopListeningButton.IsEnabled = false;
                     SendMessageButton.IsEnabled = false;
+                    RefreshQueuesButton.IsEnabled = false;
+                    
+                    // Clear queues
+                    _queues.Clear();
+                    QueuesComboBox.ItemsSource = null;
+                    QueuesComboBox.ItemsSource = _queues;
+                    SendQueueTextBox.Text = "";
                 
                     // Enable connection fields
                     HostTextBox.IsEnabled = true;
@@ -70,13 +81,10 @@ public partial class MainWindow
                         PasswordBox.Password
                     );
                     
-                    // show existing queues
-                    
-
-                    
                     _isConnected = true;
                     ConnectButton.Content = "Disconnect";
-                    StartListeningButton.IsEnabled = true;
+                    StartListeningButton.IsEnabled = false; // Will enable after queue selection
+                    RefreshQueuesButton.IsEnabled = true;
                     SendMessageButton.IsEnabled = true;
                     
                     // Disable connection fields
@@ -84,6 +92,9 @@ public partial class MainWindow
                     PortTextBox.IsEnabled = false;
                     UsernameTextBox.IsEnabled = false;
                     PasswordBox.IsEnabled = false;
+                    
+                    // Load queues automatically
+                    await RefreshQueues();
                     
                     MessageBox.Show("Connected to RabbitMQ successfully!", "Connection", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -94,22 +105,74 @@ public partial class MainWindow
                     MessageBoxImage.Error);
             }
         }
+        
+        private async Task RefreshQueues()
+        {
+            try
+            {
+                var managementUrl = $"http://{HostTextBox.Text}:15672";
+                var queues = await _rabbitMqService.GetQueuesAsync(managementUrl, UsernameTextBox.Text, PasswordBox.Password);
+                
+                _queues.Clear();
+                foreach (var queue in queues)
+                {
+                    _queues.Add(queue);
+                }
+                
+                // Refresh the ComboBox
+                QueuesComboBox.ItemsSource = null;
+                QueuesComboBox.ItemsSource = _queues;
+                
+                if (_queues.Count == 0)
+                {
+                    MessageBox.Show("No queues found. Make sure RabbitMQ Management plugin is enabled.", 
+                        "Queue Discovery", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to refresh queues: {ex.Message}\n\nNote: This requires RabbitMQ Management plugin to be enabled.", 
+                    "Queue Refresh Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        
+        private async void RefreshQueuesButton_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshQueues();
+        }
+        
+        private void QueuesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            StartListeningButton.IsEnabled = QueuesComboBox.SelectedItem != null && _isConnected && !_isListening;
+            
+            // Update send queue when selection changes
+            if (QueuesComboBox.SelectedItem is QueueInfo selectedQueue)
+            {
+                SendQueueTextBox.Text = selectedQueue.Name;
+                SendMessageButton.IsEnabled = _isConnected;
+            }
+            else
+            {
+                SendQueueTextBox.Text = "";
+                SendMessageButton.IsEnabled = false;
+            }
+        }
 
         private async void StartListeningButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(ListenQueueTextBox.Text))
+                if (string.IsNullOrWhiteSpace(QueuesComboBox.Text))
                 {
                     MessageBox.Show("Please enter a queue name", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                await _rabbitMqService.StartListening(ListenQueueTextBox.Text);
+                await _rabbitMqService.StartListening(QueuesComboBox.Text);
             
                 StartListeningButton.IsEnabled = false;
                 StopListeningButton.IsEnabled = true;
-                ListenQueueTextBox.IsEnabled = false;
+                QueuesComboBox.IsEnabled = false;
             }
             catch (Exception ex)
             {
@@ -126,7 +189,7 @@ public partial class MainWindow
             
                 StartListeningButton.IsEnabled = true;  
                 StopListeningButton.IsEnabled = false;
-                ListenQueueTextBox.IsEnabled = true;
+                QueuesComboBox.IsEnabled = true;
             }
             catch (Exception ex)
             {
@@ -149,7 +212,7 @@ public partial class MainWindow
             }
         }
 
-        private void SaveMessageButton_Click(object sender, RoutedEventArgs e)
+        private async void SaveMessageButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -169,7 +232,7 @@ public partial class MainWindow
 
                 if (saveFileDialog.ShowDialog() != true) return;
                 
-                _fileService.SaveMessage(selectedMessage, saveFileDialog.FileName).RunSynchronously();
+                await _fileService.SaveMessage(selectedMessage, saveFileDialog.FileName);
                 MessageBox.Show("Message saved successfully!", "Success", MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
@@ -248,6 +311,9 @@ public partial class MainWindow
                 MessageBox.Show($"Message sent to queue '{SendQueueTextBox.Text}' successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 SendMessageTextBox.Text = "";
                 UpdateSendMessagePlaceholder();
+                
+                // Refresh queue info to show updated message count
+                _ = RefreshQueues();
             }
             catch (Exception ex)
             {

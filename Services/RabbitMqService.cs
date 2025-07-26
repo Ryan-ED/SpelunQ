@@ -1,13 +1,15 @@
 ﻿using RabbitMQ.Client;
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using RabbitMQ.Client.Events;
 using SpelunQ.Models;
 
 namespace SpelunQ.Services;
 
-public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
+public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
     : IDisposable
 {
     private IConnection? _connection;
@@ -38,6 +40,31 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
             throw;
         }
     }
+    
+    public async Task<List<QueueInfo>> GetQueuesAsync(string managementUrl = "http://localhost:15672", 
+        string username = "guest", string password = "guest")
+    {
+        try
+        {
+            using var client = new HttpClient();
+            var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+
+            var response = await client.GetStringAsync($"{managementUrl}/api/queues");
+            var queues = JsonSerializer.Deserialize<QueueInfo[]>(response, new JsonSerializerOptions 
+            { 
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                PropertyNameCaseInsensitive = true 
+            });
+
+            return queues?.ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            throw;
+        }
+    }
 
     public async Task StartListening(string queueName)
     {
@@ -54,8 +81,7 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
 
             _currentQueue = queueName;
 
-            // Declare queue (creates if doesn't exist)
-            await _channel.QueueDeclareAsync(queueName, true, false, false);
+            await _channel.QueueDeclarePassiveAsync(queueName);
 
             _consumer = new AsyncEventingBasicConsumer(_channel);
 
@@ -83,7 +109,7 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
                 }
 
                 // Update UI on the main thread
-                Application.Current.Dispatcher.Invoke(() => { messages.Insert(0, rabbitMessage); });
+                Application.Current.Dispatcher.Invoke(() => { _messages.Insert(0, rabbitMessage); });
 
                 return Task.CompletedTask;
             };
@@ -125,7 +151,7 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> messages)
 
         try
         {
-            await _channel.QueueDeclareAsync(queueName, true, false, false);
+            await _channel.QueueDeclarePassiveAsync(queueName);
 
             var body = Encoding.UTF8.GetBytes(message);
             await _channel.BasicPublishAsync("", queueName, body);
