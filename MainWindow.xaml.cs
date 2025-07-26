@@ -36,6 +36,106 @@ public partial class MainWindow
             UpdateSendMessagePlaceholder();
         }
 
+        private void ConfigureUiOnConnect()
+        {
+            // Disable 'Connection' section
+            HostTextBox.IsEnabled = false;
+            PortTextBox.IsEnabled = false;
+            UsernameTextBox.IsEnabled = false;
+            PasswordBox.IsEnabled = false;
+            ConnectButton.Content = "Disconnect";
+
+            // Enable 'Queue Management' section
+            QueuesComboBox.IsEnabled = true;
+            RefreshQueuesButton.IsEnabled = true;
+            StartListeningButton.IsEnabled = false;
+            StopListeningButton.IsEnabled = false;
+            
+            // Clear queues
+            _queues.Clear();
+            QueuesComboBox.ItemsSource = null;
+            QueuesComboBox.ItemsSource = _queues;
+            SendQueueTextBox.Text = "";
+            
+            // Disable 'Messages' section
+            SaveMessageButton.IsEnabled = false;
+            LoadMessageButton.IsEnabled = false;
+            
+            // Disable 'Send Message' section
+            SendMessageTextBox.IsEnabled = false;
+            SendMessageButton.IsEnabled = false;
+        }
+
+        private void ConfigureUiOnDisconnect()
+        {
+            // Enable 'Connection' section
+            HostTextBox.IsEnabled = true;
+            PortTextBox.IsEnabled = true;
+            UsernameTextBox.IsEnabled = true;
+            PasswordBox.IsEnabled = true;
+            ConnectButton.Content = "Connect";
+
+            // Disable 'Queue Management' section
+            QueuesComboBox.IsEnabled = false;
+            RefreshQueuesButton.IsEnabled = false;
+            StartListeningButton.IsEnabled = false;
+            StopListeningButton.IsEnabled = false;
+            
+            // Clear queues
+            _queues.Clear();
+            QueuesComboBox.ItemsSource = null;
+            QueuesComboBox.ItemsSource = _queues;
+            SendQueueTextBox.Text = "";
+            
+            // Disable 'Messages' section
+            SaveMessageButton.IsEnabled = false;
+            LoadMessageButton.IsEnabled = false;
+            
+            // Disable 'Send Message' section
+            SendMessageTextBox.IsEnabled = false;
+            SendMessageButton.IsEnabled = false;
+        }
+
+        private void ConfigureUiOnListeningStart()
+        {
+            // Disable 'Connection' section
+            HostTextBox.IsEnabled = false;
+            PortTextBox.IsEnabled = false;
+            UsernameTextBox.IsEnabled = false;
+            PasswordBox.IsEnabled = false;
+            ConnectButton.Content = "Disconnect";
+            
+            // 'Queue Management' section
+            QueuesComboBox.IsEnabled = false;
+            RefreshQueuesButton.IsEnabled = false;
+            StartListeningButton.IsEnabled = false;
+            StopListeningButton.IsEnabled = true;
+            
+            // Disable 'Messages' section
+            SaveMessageButton.IsEnabled = false;
+            LoadMessageButton.IsEnabled = true;
+        }
+
+        private void ConfigureUiOnListeningStop()
+        {
+            // Disable 'Connection' section
+            HostTextBox.IsEnabled = false;
+            PortTextBox.IsEnabled = false;
+            UsernameTextBox.IsEnabled = false;
+            PasswordBox.IsEnabled = false;
+            ConnectButton.Content = "Disconnect";
+
+            // 'Queue Management' section
+            QueuesComboBox.IsEnabled = true;
+            RefreshQueuesButton.IsEnabled = true;
+            StartListeningButton.IsEnabled = true;
+            StopListeningButton.IsEnabled = false;
+            
+            // Disable 'Messages' section
+            SaveMessageButton.IsEnabled = false;
+            LoadMessageButton.IsEnabled = false;
+        }
+
         private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -45,30 +145,14 @@ public partial class MainWindow
                     // Disconnect
                     _rabbitMqService.Dispose();
                     _isConnected = false;
-                    ConnectButton.Content = "Connect";
-                    StartListeningButton.IsEnabled = false;
-                    StopListeningButton.IsEnabled = false;
-                    SendMessageButton.IsEnabled = false;
-                    RefreshQueuesButton.IsEnabled = false;
-                    
-                    // Clear queues
-                    _queues.Clear();
-                    QueuesComboBox.ItemsSource = null;
-                    QueuesComboBox.ItemsSource = _queues;
-                    SendQueueTextBox.Text = "";
-                
-                    // Enable connection fields
-                    HostTextBox.IsEnabled = true;
-                    PortTextBox.IsEnabled = true;
-                    UsernameTextBox.IsEnabled = true;
-                    PasswordBox.IsEnabled = true;
+                    ConfigureUiOnDisconnect();
                 
                     MessageBox.Show("Disconnected from RabbitMQ", "Connection", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
                     // Connect
-                    if (!int.TryParse(PortTextBox.Text, out int port))
+                    if (!int.TryParse(PortTextBox.Text, out var port))
                     {
                         MessageBox.Show("Invalid port number", "Connection Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
@@ -82,16 +166,7 @@ public partial class MainWindow
                     );
                     
                     _isConnected = true;
-                    ConnectButton.Content = "Disconnect";
-                    StartListeningButton.IsEnabled = false; // Will enable after queue selection
-                    RefreshQueuesButton.IsEnabled = true;
-                    SendMessageButton.IsEnabled = true;
-                    
-                    // Disable connection fields
-                    HostTextBox.IsEnabled = false;
-                    PortTextBox.IsEnabled = false;
-                    UsernameTextBox.IsEnabled = false;
-                    PasswordBox.IsEnabled = false;
+                    ConfigureUiOnConnect();
                     
                     // Load queues automatically
                     await RefreshQueues();
@@ -143,18 +218,19 @@ public partial class MainWindow
         
         private void QueuesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            StartListeningButton.IsEnabled = QueuesComboBox.SelectedItem != null && _isConnected && !_isListening;
-            
             // Update send queue when selection changes
             if (QueuesComboBox.SelectedItem is QueueInfo selectedQueue)
             {
                 SendQueueTextBox.Text = selectedQueue.Name;
                 SendMessageButton.IsEnabled = _isConnected;
+                
+                SendMessageTextBox.IsEnabled = true;
             }
             else
             {
                 SendQueueTextBox.Text = "";
                 SendMessageButton.IsEnabled = false;
+                SendMessageTextBox.IsEnabled = false;
             }
         }
 
@@ -170,9 +246,9 @@ public partial class MainWindow
 
                 await _rabbitMqService.StartListening(QueuesComboBox.Text);
             
-                StartListeningButton.IsEnabled = false;
-                StopListeningButton.IsEnabled = true;
-                QueuesComboBox.IsEnabled = false;
+                _isListening = true;
+                
+                ConfigureUiOnListeningStart();
             }
             catch (Exception ex)
             {
@@ -187,9 +263,9 @@ public partial class MainWindow
             {
                 await _rabbitMqService.StopListening();
             
-                StartListeningButton.IsEnabled = true;  
-                StopListeningButton.IsEnabled = false;
-                QueuesComboBox.IsEnabled = true;
+                _isListening = false;
+                
+                ConfigureUiOnListeningStop();
             }
             catch (Exception ex)
             {
@@ -225,6 +301,7 @@ public partial class MainWindow
 
                 var saveFileDialog = new SaveFileDialog
                 {
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer),
                     Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
                     DefaultExt = "json",
                     FileName = $"message_{selectedMessage.ReceivedAt:yyyyMMdd_HHmmss}.json"
@@ -312,7 +389,7 @@ public partial class MainWindow
                 SendMessageTextBox.Text = "";
                 UpdateSendMessagePlaceholder();
                 
-                // Refresh queue info to show updated message count
+                // Refresh queue info to show an updated message count
                 _ = RefreshQueues();
             }
             catch (Exception ex)

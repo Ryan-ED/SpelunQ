@@ -8,7 +8,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="200"/>
         </Grid.RowDefinitions>
 
@@ -58,7 +58,7 @@
                 
                 <Label Content="Available Queues:" Grid.Column="0" VerticalAlignment="Center"/>
                 <ComboBox x:Name="QueuesComboBox" Grid.Column="1" Margin="5" VerticalAlignment="Center" 
-                          DisplayMemberPath="Name" SelectedValuePath="Name"
+                          DisplayMemberPath="Name" SelectedValuePath="Name" IsEnabled="False"
                           SelectionChanged="QueuesComboBox_SelectionChanged"/>
                 <Button x:Name="RefreshQueuesButton" Content="Refresh" Grid.Column="2" Margin="5" Padding="10,5" 
                         Click="RefreshQueuesButton_Click" IsEnabled="False"/>
@@ -92,8 +92,8 @@
                 
                 <StackPanel Grid.Column="1" Margin="10" Width="120">
                     <Button x:Name="SaveMessageButton" Content="Save Message" Margin="0,5" Padding="5" Click="SaveMessageButton_Click" IsEnabled="False"/>
-                    <Button x:Name="LoadMessageButton" Content="Load Message" Margin="0,5" Padding="5" Click="LoadMessageButton_Click"/>
-                    <Button x:Name="ClearMessagesButton" Content="Clear Messages" Margin="0,5" Padding="5" Click="ClearMessagesButton_Click"/>
+                    <Button x:Name="LoadMessageButton" Content="Load Message" Margin="0,5" Padding="5" Click="LoadMessageButton_Click" IsEnabled="False"/>
+                    <Button x:Name="ClearMessagesButton" Content="Clear Messages" Margin="0,5" Padding="5" Click="ClearMessagesButton_Click" IsEnabled="False"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -101,19 +101,27 @@
         <!-- Send Message Panel -->
         <GroupBox Header="Send Message" Grid.Row="3" Margin="10">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="200"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
-                <Label Content="Target Queue:" Grid.Column="0" VerticalAlignment="Center"/>
-                <TextBox x:Name="SendQueueTextBox" Grid.Column="1" Margin="5" VerticalAlignment="Center" IsReadOnly="True" Background="LightGray"/>
-                <TextBox x:Name="SendMessageTextBox" Grid.Column="2" Margin="5" VerticalAlignment="Center" 
-                         Text="Enter message to send..." Foreground="Gray" 
-                         GotFocus="SendMessageTextBox_GotFocus" LostFocus="SendMessageTextBox_LostFocus"/>
-                <Button x:Name="SendMessageButton" Content="Send" Grid.Column="3" Margin="5" Padding="10,5" Click="SendMessageButton_Click" IsEnabled="False"/>
+        
+                <Label Content="Target Queue:" Grid.Column="0" Grid.Row="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="SendQueueTextBox" Grid.Column="1" Grid.Row="0" Margin="5" VerticalAlignment="Center" IsReadOnly="True" Background="LightGray"/>
+                <Button x:Name="SendMessageButton" Content="Send" Grid.Column="3" Grid.Row="0" Margin="5" Padding="10,5" Click="SendMessageButton_Click" IsEnabled="False"/>
+        
+                <ScrollViewer Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="4" Margin="5">
+                    <TextBox x:Name="SendMessageTextBox" TextWrapping="Wrap" AcceptsReturn="True"
+                             Text="Enter message to send..." Foreground="Gray" 
+                             MinHeight="80" IsEnabled="False"
+                             GotFocus="SendMessageTextBox_GotFocus" LostFocus="SendMessageTextBox_LostFocus"/>
+                </ScrollViewer>
             </Grid>
         </GroupBox>
 
