@@ -12,33 +12,14 @@ services:
       - RABBITMQ_DEFAULT_PASS=guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./entrypoint.sh:/custom-entrypoint.sh:ro
+      - ./init-queues.sh:/init-queues.sh:ro
+    entrypoint: ["/bin/bash", "/custom-entrypoint.sh"]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
-    networks:
-      - spelunq-network
-
-  # Optional: RabbitMQ queue initializer
-  rabbitmq-init:
-    image: rabbitmq:3-management
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=guest
-      - RABBITMQ_PASS=guest
-    volumes:
-      - ./init-queues.sh:/init-queues.sh
-    command: /bin/bash -c "chmod +x /init-queues.sh && /init-queues.sh"
-    networks:
-      - spelunq-network
 
 volumes:
   rabbitmq_data:
-
-networks:
-  spelunq-network:
-    driver: bridge
