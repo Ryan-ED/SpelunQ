@@ -223,6 +223,7 @@ public partial class MainWindow
             {
                 SendQueueTextBox.Text = selectedQueue.Name;
                 SendMessageButton.IsEnabled = _isConnected;
+                StartListeningButton.IsEnabled = true;
                 
                 SendMessageTextBox.IsEnabled = true;
             }

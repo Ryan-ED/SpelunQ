@@ -130,13 +130,31 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
         {
             try
             {
-                await _channel.BasicCancelAsync(_consumer.ConsumerTags.FirstOrDefault() ?? "");
+                // Check if channel is still open before trying to cancel
+                if (_channel.IsOpen)
+                {
+                    var consumerTag = _consumer.ConsumerTags.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(consumerTag))
+                    {
+                        await _channel.BasicCancelAsync(consumerTag);
+                    }
+                }
+            }
+            catch (ObjectDisposedException ex)
+            {
+                // Channel or connection is already disposed, ignore
+                Console.WriteLine(ex.Message);
             }
             catch (Exception ex)
             {
                 // log
                 Console.WriteLine(ex.Message);
                 throw;
+            }
+            finally
+            {
+                _consumer = null;
+                _currentQueue = string.Empty;
             }
         }
     }
