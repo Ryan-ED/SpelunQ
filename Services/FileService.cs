@@ -7,7 +7,7 @@ namespace SpelunQ.Services;
 
 public class FileService
 {
-    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -22,7 +22,7 @@ public class FileService
         }
         catch (Exception ex)
         {
-            // log
+            // TODO: log
             Console.WriteLine(ex.Message);
             throw;
         }
@@ -44,7 +44,7 @@ public class FileService
         }
         catch (Exception ex)
         {
-            // log
+            // TODO: log
             Console.WriteLine(ex.Message);
             throw;
         }

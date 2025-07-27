@@ -35,7 +35,7 @@ public class RabbitMqService : IDisposable
         }
         catch (Exception ex)
         {
-            // log
+            // TODO: log
             Console.WriteLine(ex.Message);
             throw;
         }
@@ -61,6 +61,7 @@ public class RabbitMqService : IDisposable
         }
         catch (Exception ex)
         {
+            // TODO: log
             Console.WriteLine(ex.Message);
             throw;
         }
@@ -80,48 +81,57 @@ public class RabbitMqService : IDisposable
             _currentQueue = queueName;
 
             await _channel.QueueDeclarePassiveAsync(queueName);
-            
-            // Set QoS to only prefetch a small number of messages
-            await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
+        
+            // Set QoS to prefetch more messages for better monitoring coverage
+            // prefetchCount: 0 means unlimited - you'll see all available messages
+            await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 0, global: false);
 
             _consumer = new AsyncEventingBasicConsumer(_channel);
 
             _consumer.ReceivedAsync += (_, ea) =>
             {
-                var body = ea.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-
-                var rabbitMessage = new RabbitMessage
+                try
                 {
-                    Content = message,
-                    Queue = queueName,
-                    Exchange = ea.Exchange,
-                    RoutingKey = ea.RoutingKey,
-                    ReceivedAt = DateTime.Now
-                };
+                    var body = ea.Body.ToArray();
+                    var message = Encoding.UTF8.GetString(body);
 
-                // Add headers
-                if (ea.BasicProperties.Headers != null)
-                {
-                    foreach (var header in ea.BasicProperties.Headers)
+                    var rabbitMessage = new RabbitMessage
                     {
-                        rabbitMessage.Headers[header.Key] = header.Value ?? throw new InvalidOperationException("Header value is null");
-                    }
-                }
+                        Content = message,
+                        Queue = queueName,
+                        Exchange = ea.Exchange,
+                        RoutingKey = ea.RoutingKey,
+                        ReceivedAt = DateTime.Now
+                    };
 
-                // Fire event instead of directly updating UI
-                MessageReceived?.Invoke(rabbitMessage);
+                    // Add headers
+                    if (ea.BasicProperties.Headers != null)
+                    {
+                        foreach (var header in ea.BasicProperties.Headers)
+                        {
+                            rabbitMessage.Headers[header.Key] = header.Value ?? throw new InvalidOperationException("Header value is null");
+                        }
+                    }
+
+                    // Fire event to update UI
+                    MessageReceived?.Invoke(rabbitMessage);
+                }
+                catch (Exception ex)
+                {
+                    // TODO: log
+                    Console.WriteLine($"Error processing message: {ex.Message}");
+                }
+                
                 return Task.CompletedTask;
             };
             
-            // Don't acknowledge - this keeps the message in "unacknowledged" state
-            // The message won't be redelivered to this consumer, but stays in the queue
-            // When you stop monitoring; unacknowledged messages return to the queue
+            // Set autoAck to false - this way messages stay in "unacknowledged" state
+            // and will be visible to your monitoring without being consumed
             await _channel.BasicConsumeAsync(queue: queueName, autoAck: false, consumer: _consumer);
         }
         catch (Exception ex)
         {
-            // log
+            // TODO: log
             Console.WriteLine(ex.Message);
             throw;
         }
@@ -133,7 +143,7 @@ public class RabbitMqService : IDisposable
         {
             try
             {
-                // Check if channel is still open before trying to cancel
+                // Check if the channel is still open before trying to cancel
                 if (_channel.IsOpen)
                 {
                     var consumerTag = _consumer.ConsumerTags.FirstOrDefault();
@@ -155,10 +165,11 @@ public class RabbitMqService : IDisposable
             catch (ObjectDisposedException)
             {
                 // Channel or connection is already disposed, ignore
+                // TODO: log
             }
             catch (Exception ex)
             {
-                // log other exceptions
+                // TODO: log
                 Console.WriteLine($"Error stopping listener: {ex.Message}");
             }
             finally
@@ -185,7 +196,7 @@ public class RabbitMqService : IDisposable
         }
         catch (Exception ex)
         {
-            // log
+            // TODO: log
             Console.WriteLine(ex.Message);
             throw;
         }
@@ -195,33 +206,44 @@ public class RabbitMqService : IDisposable
     {
         try
         {
+            // Capture the references to avoid disposal race conditions
+            var channel = _channel;
+            var connection = _connection;
+        
             // Use synchronous disposal to avoid async void issues
             Task.Run(async () =>
             {
                 await StopListening();
-                
-                if (_channel?.IsOpen == true)
+            
+                if (channel?.IsOpen == true)
                 {
-                    await _channel.CloseAsync();
+                    await channel.CloseAsync();
                 }
-                
-                if (_connection?.IsOpen == true)
+            
+                if (connection?.IsOpen == true)
                 {
-                    await _connection.CloseAsync();
+                    await connection.CloseAsync();
                 }
             }).Wait(TimeSpan.FromSeconds(5)); // Give it 5 seconds max
-            
-            _channel?.Dispose();
-            _connection?.Dispose();
+        
+            channel?.Dispose();
+            connection?.Dispose();
         }
         catch (ObjectDisposedException)
         {
             // Objects already disposed, ignore
+            // TODO: log
         }
         catch (Exception ex)
         {
-            // log other exceptions
+            // TODO: log
             Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            // Clear the field references
+            _channel = null;
+            _connection = null;
         }
     }
 }
