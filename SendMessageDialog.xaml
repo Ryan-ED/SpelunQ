@@ -12,7 +12,7 @@
         </Grid.RowDefinitions>
 
         <Label Content="Target Queue Name:" Grid.Row="0" Margin="0,0,0,5"/>
-        <TextBox x:Name="QueueNameTextBox" Grid.Row="1" Margin="0,0,0,10" Height="25"/>
+        <TextBox x:Name="QueueNameTextBox" IsReadOnly="True" Grid.Row="1" Margin="0,0,0,10" Height="25"/>
 
         <GroupBox Header="Message Content" Grid.Row="2" Margin="0,0,0,10">
             <ScrollViewer>

@@ -7,17 +7,17 @@ namespace SpelunQ.Services;
 
 public class FileService
 {
+    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public async Task SaveMessage(RabbitMessage message, string filePath)
     {
         try
-        {
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
-                
-            var json = JsonSerializer.Serialize(message, options);
+        { 
+            var json = JsonSerializer.Serialize(message, Options);
             await File.WriteAllTextAsync(filePath, json);
         }
         catch (Exception ex)
@@ -39,7 +39,7 @@ public class FileService
             }
 
             var json = await File.ReadAllTextAsync(filePath);
-            var message = JsonSerializer.Deserialize<RabbitMessage>(json);
+            var message = JsonSerializer.Deserialize<RabbitMessage>(json, Options);
             return message;
         }
         catch (Exception ex)

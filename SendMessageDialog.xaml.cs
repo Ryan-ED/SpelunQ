@@ -7,11 +7,12 @@ public partial class SendMessageDialog
     public string QueueName => QueueNameTextBox.Text;
     public string MessageContent => MessageContentTextBox.Text;
 
-    public SendMessageDialog(string messageContent = "")
+    public SendMessageDialog(string messageContent = "", string queueName = "")
     {
         InitializeComponent();
         MessageContentTextBox.Text = messageContent;
-        QueueNameTextBox.Focus();
+        QueueNameTextBox.Text = queueName;
+        MessageContentTextBox.Focus();
     }
 
     private void SendButton_Click(object sender, RoutedEventArgs e)

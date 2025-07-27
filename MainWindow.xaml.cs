@@ -17,6 +17,7 @@ public partial class MainWindow
         private readonly RabbitMqService _rabbitMqService;
         private readonly FileService _fileService;
         private readonly List<QueueInfo> _queues;
+        private string _currentQueue = string.Empty;
         private bool _isConnected;
         private bool _isListening;
 
@@ -201,6 +202,7 @@ public partial class MainWindow
         {
             try
             {
+                _currentQueue = string.Empty;
                 var managementUrl = $"http://{HostTextBox.Text}:15672";
                 var queues = await _rabbitMqService.GetQueuesAsync(managementUrl, UsernameTextBox.Text, PasswordBox.Password);
                 
@@ -229,6 +231,7 @@ public partial class MainWindow
         
         private async void RefreshQueuesButton_Click(object sender, RoutedEventArgs e)
         {
+            _currentQueue = string.Empty;
             MessageContentTextBox.Text = "";
             SaveMessageButton.IsEnabled = false;
             _messages.Clear();
@@ -268,6 +271,7 @@ public partial class MainWindow
                 await _rabbitMqService.StartListening(queueName);
     
                 _isListening = true;
+                _currentQueue = queueName;
         
                 ConfigureUiOnListeningStart();
             }
@@ -289,6 +293,8 @@ public partial class MainWindow
                 await _rabbitMqService.StopListening();
             
                 _isListening = false;
+
+                _currentQueue = string.Empty;
                 
                 ConfigureUiOnListeningStop();
             }
@@ -361,7 +367,7 @@ public partial class MainWindow
                 if (message == null) return;
                     
                 // Show send dialog
-                var sendDialog = new SendMessageDialog(message.Content);
+                var sendDialog = new SendMessageDialog(message.Content, _currentQueue);
                 if (sendDialog.ShowDialog() != true) return;
                         
                 if (_isConnected && !string.IsNullOrWhiteSpace(sendDialog.QueueName))
