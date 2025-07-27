@@ -65,7 +65,7 @@ public class RabbitMqService : IDisposable
             throw;
         }
     }
-
+    
     public async Task StartListening(string queueName)
     {
         if (_channel == null)
@@ -77,10 +77,12 @@ public class RabbitMqService : IDisposable
         {
             // Stop previous consumer if exists
             await StopListening();
-
             _currentQueue = queueName;
 
             await _channel.QueueDeclarePassiveAsync(queueName);
+            
+            // Set QoS to only prefetch a small number of messages
+            await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false);
 
             _consumer = new AsyncEventingBasicConsumer(_channel);
 
@@ -109,11 +111,13 @@ public class RabbitMqService : IDisposable
 
                 // Fire event instead of directly updating UI
                 MessageReceived?.Invoke(rabbitMessage);
-
                 return Task.CompletedTask;
             };
-
-            await _channel.BasicConsumeAsync(queue: queueName, autoAck: true, consumer: _consumer);
+            
+            // Don't acknowledge - this keeps the message in "unacknowledged" state
+            // The message won't be redelivered to this consumer, but stays in the queue
+            // When you stop monitoring; unacknowledged messages return to the queue
+            await _channel.BasicConsumeAsync(queue: queueName, autoAck: false, consumer: _consumer);
         }
         catch (Exception ex)
         {
@@ -135,7 +139,16 @@ public class RabbitMqService : IDisposable
                     var consumerTag = _consumer.ConsumerTags.FirstOrDefault();
                     if (!string.IsNullOrEmpty(consumerTag))
                     {
+                        // Cancel the consumer first
                         await _channel.BasicCancelAsync(consumerTag);
+
+                        // Wait a brief moment for any in-flight messages to be processed
+                        await Task.Delay(100);
+
+                        // Reject all unacknowledged messages to return them to the queue
+                        // The 'multiple: true' parameter rejects all unacknowledged messages
+                        // delivered to this consumer
+                        await _channel.BasicNackAsync(0, multiple: true, requeue: true);
                     }
                 }
             }
@@ -146,7 +159,7 @@ public class RabbitMqService : IDisposable
             catch (Exception ex)
             {
                 // log other exceptions
-                Console.WriteLine(ex.Message);
+                Console.WriteLine($"Error stopping listener: {ex.Message}");
             }
             finally
             {

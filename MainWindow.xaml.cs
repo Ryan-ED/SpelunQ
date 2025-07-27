@@ -143,6 +143,10 @@ public partial class MainWindow
             StartListeningButton.IsEnabled = true;
             StopListeningButton.IsEnabled = false;
             
+            MessageContentTextBox.Text = "";
+            SaveMessageButton.IsEnabled = false;
+            _messages.Clear();
+            
             // Disable 'Messages' section
             SaveMessageButton.IsEnabled = false;
             LoadMessageButton.IsEnabled = false;
@@ -225,6 +229,9 @@ public partial class MainWindow
         
         private async void RefreshQueuesButton_Click(object sender, RoutedEventArgs e)
         {
+            MessageContentTextBox.Text = "";
+            SaveMessageButton.IsEnabled = false;
+            _messages.Clear();
             await RefreshQueues();
         }
         
@@ -251,13 +258,14 @@ public partial class MainWindow
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(QueuesComboBox.Text))
+                var queueName = QueuesComboBox.SelectedValue.ToString();
+                if (string.IsNullOrWhiteSpace(queueName))
                 {
                     MessageBox.Show("Please enter a queue name", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                await _rabbitMqService.StartListening(QueuesComboBox.Text);
+                await _rabbitMqService.StartListening(queueName);
     
                 _isListening = true;
         

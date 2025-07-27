@@ -58,7 +58,7 @@
                 
                 <Label Content="Available Queues:" Grid.Column="0" VerticalAlignment="Center"/>
                 <ComboBox x:Name="QueuesComboBox" Grid.Column="1" Margin="5" VerticalAlignment="Center" 
-                          DisplayMemberPath="Name" SelectedValuePath="Name" IsEnabled="False"
+                          DisplayMemberPath="DisplayInfo" SelectedValuePath="Name" IsEnabled="False"
                           SelectionChanged="QueuesComboBox_SelectionChanged"/>
                 <Button x:Name="RefreshQueuesButton" Content="Refresh" Grid.Column="2" Margin="5" Padding="10,5" 
                         Click="RefreshQueuesButton_Click" IsEnabled="False"/>
