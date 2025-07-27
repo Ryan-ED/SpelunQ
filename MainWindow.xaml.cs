@@ -25,15 +25,27 @@ public partial class MainWindow
             InitializeComponent();
             
             _messages = new ObservableCollection<RabbitMessage>();
-            _rabbitMqService = new RabbitMqService(_messages);
+            _rabbitMqService = new RabbitMqService();
             _fileService = new FileService();
             _queues = new List<QueueInfo>();
+            
+            // Subscribe to message received event
+            _rabbitMqService.MessageReceived += OnMessageReceived;
             
             MessagesDataGrid.ItemsSource = _messages;
             QueuesComboBox.ItemsSource = _queues;
             
             // Set initial placeholder text
             UpdateSendMessagePlaceholder();
+        }
+
+        private void OnMessageReceived(RabbitMessage message)
+        {
+            // Update UI on the main thread
+            Application.Current.Dispatcher.Invoke(() => 
+            {
+                _messages.Insert(0, message);
+            });
         }
 
         private void ConfigureUiOnConnect()
@@ -246,10 +258,14 @@ public partial class MainWindow
                 }
 
                 await _rabbitMqService.StartListening(QueuesComboBox.Text);
-            
+    
                 _isListening = true;
-                
+        
                 ConfigureUiOnListeningStart();
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
@@ -389,9 +405,13 @@ public partial class MainWindow
                 MessageBox.Show($"Message sent to queue '{SendQueueTextBox.Text}' successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 SendMessageTextBox.Text = "";
                 UpdateSendMessagePlaceholder();
-                
+        
                 // Refresh queue info to show an updated message count
                 _ = RefreshQueues();
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {

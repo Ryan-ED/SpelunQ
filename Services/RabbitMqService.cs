@@ -1,21 +1,21 @@
 ﻿using RabbitMQ.Client;
-using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Windows;
 using RabbitMQ.Client.Events;
 using SpelunQ.Models;
 
 namespace SpelunQ.Services;
 
-public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
-    : IDisposable
+public class RabbitMqService : IDisposable
 {
     private IConnection? _connection;
     private IChannel? _channel;
     private string _currentQueue = string.Empty;
     private AsyncEventingBasicConsumer? _consumer;
+
+    // Event to notify when a message is received
+    public event Action<RabbitMessage>? MessageReceived;
 
     public async Task Connect(string hostName = "localhost", int port = 5672, string userName = "guest",
         string password = "guest")
@@ -70,8 +70,7 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
     {
         if (_channel == null)
         {
-            MessageBox.Show("Not connected to RabbitMQ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
+            throw new InvalidOperationException("Not connected to RabbitMQ");
         }
 
         try
@@ -108,8 +107,8 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
                     }
                 }
 
-                // Update UI on the main thread
-                Application.Current.Dispatcher.Invoke(() => { _messages.Insert(0, rabbitMessage); });
+                // Fire event instead of directly updating UI
+                MessageReceived?.Invoke(rabbitMessage);
 
                 return Task.CompletedTask;
             };
@@ -140,16 +139,14 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
                     }
                 }
             }
-            catch (ObjectDisposedException ex)
+            catch (ObjectDisposedException)
             {
                 // Channel or connection is already disposed, ignore
-                Console.WriteLine(ex.Message);
             }
             catch (Exception ex)
             {
-                // log
+                // log other exceptions
                 Console.WriteLine(ex.Message);
-                throw;
             }
             finally
             {
@@ -163,8 +160,7 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
     {
         if (_channel == null)
         {
-            MessageBox.Show("Not connected to RabbitMQ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
+            throw new InvalidOperationException("Not connected to RabbitMQ");
         }
 
         try
@@ -182,21 +178,37 @@ public class RabbitMqService(ObservableCollection<RabbitMessage> _messages)
         }
     }
 
-    public async void Dispose()
+    public void Dispose()
     {
         try
         {
-            await StopListening();
-            _channel?.CloseAsync();
-            _connection?.CloseAsync();
+            // Use synchronous disposal to avoid async void issues
+            Task.Run(async () =>
+            {
+                await StopListening();
+                
+                if (_channel?.IsOpen == true)
+                {
+                    await _channel.CloseAsync();
+                }
+                
+                if (_connection?.IsOpen == true)
+                {
+                    await _connection.CloseAsync();
+                }
+            }).Wait(TimeSpan.FromSeconds(5)); // Give it 5 seconds max
+            
             _channel?.Dispose();
             _connection?.Dispose();
         }
+        catch (ObjectDisposedException)
+        {
+            // Objects already disposed, ignore
+        }
         catch (Exception ex)
         {
-            // log
+            // log other exceptions
             Console.WriteLine(ex.Message);
-            throw;
         }
     }
 }
